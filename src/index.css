@@ -1,0 +1,57 @@
+/* Tailwind base styles and a tiny fallback for when Tailwind isn't configured yet. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Minimal fallback styles to avoid a flash of unstyled content if Tailwind isn't built yet. */
+html, body, #root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  /* Use Funnel Sans as the default UI font */
+  font-family: "Funnel Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #f9fafb;
+}
+
+/* Funnel Sans utilities (loaded via Google Fonts in index.html) */
+.funnel-sans {
+  font-family: "Funnel Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-style: normal;
+  font-optical-sizing: auto;
+}
+
+/* weight helpers: use e.g. class="funnel-sans funnel-sans-500" */
+.funnel-sans-300 { font-weight: 300; }
+.funnel-sans-400 { font-weight: 400; }
+.funnel-sans-500 { font-weight: 500; }
+.funnel-sans-600 { font-weight: 600; }
+.funnel-sans-700 { font-weight: 700; }
+.funnel-sans-800 { font-weight: 800; }
+
+/* DM Mono utility: apply to code/mono elements when desired */
+.dm-mono {
+  font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-style: normal;
+}
+
+
+/* Funnel Sans helpers
+   Usage:
+     - Add class `funnel-sans` to apply the Funnel Sans family
+     - Add one of the weight classes: `funnel-sans-300`, `funnel-sans-400`, ..., `funnel-sans-800`
+   Example: <h1 class="funnel-sans funnel-sans-700">Title</h1>
+*/
+.funnel-sans {
+  font-family: "Funnel Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+}
+
+.funnel-sans-300 { font-weight: 300; }
+.funnel-sans-400 { font-weight: 400; }
+.funnel-sans-500 { font-weight: 500; }
+.funnel-sans-600 { font-weight: 600; }
+.funnel-sans-700 { font-weight: 700; }
+.funnel-sans-800 { font-weight: 800; }
+
