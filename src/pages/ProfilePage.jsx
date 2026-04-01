@@ -124,24 +124,8 @@ export const ProfilePage = () => {
       await updateProfile(auth.currentUser, authUpdateData);
       console.log("✅ Firebase Auth profile updated");
 
-      // Create or update user profile in Firestore
-      console.log("💾 Saving profile to Firestore...");
-      const profileData = {
-        displayName: data.displayName,
-        email: data.email,
-        bio: data.bio || "",
-        phone: data.phone || "",
-        location: data.location || "",
-        profession: data.profession || "",
-        photoURL: photoURL,
-        uid: auth.currentUser.uid,
-      };
-
-      await userService.createUserProfile(auth.currentUser.uid, profileData);
-      console.log("✅ Profile saved to Firestore");
-
-      // Update local auth store
-      updateUserProfile({
+      // Update local auth store immediately
+      const updatedProfile = {
         displayName: data.displayName,
         email: data.email,
         bio: data.bio,
@@ -149,7 +133,30 @@ export const ProfilePage = () => {
         location: data.location,
         profession: data.profession,
         photoURL: photoURL,
-      });
+      };
+      updateUserProfile(updatedProfile);
+
+      // Save to Firestore (non-blocking with timeout)
+      console.log("💾 Saving profile to Firestore...");
+      const profileData = {
+        ...updatedProfile,
+        uid: auth.currentUser.uid,
+      };
+
+      // Add timeout to prevent infinite loading
+      const firestorePromise = userService.createUserProfile(auth.currentUser.uid, profileData);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Save timeout")), 5000)
+      );
+
+      Promise.race([firestorePromise, timeoutPromise])
+        .then(() => {
+          console.log("✅ Profile saved to Firestore");
+        })
+        .catch((error) => {
+          console.warn("⚠️ Firestore save failed, but local profile updated:", error.message);
+          // Don't block user experience if Firestore fails
+        });
 
       toast.success("✅ Profile updated successfully!");
     } catch (error) {
