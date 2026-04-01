@@ -25,9 +25,10 @@ const listingSchema = z.object({
 export const ListFoodPage = () => {
   const navigate = useNavigate();
   const { addListing } = useListingsStore();
-  const { location, getLocation, loading: geoLoading } = useGeolocation();
+  const { location, getLocation, loading: geoLoading, error: geoError } = useGeolocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [locationError, setLocationError] = useState(null);
 
   const {
     register,
@@ -38,7 +39,17 @@ export const ListFoodPage = () => {
     resolver: zodResolver(listingSchema),
   });
 
+  // Show geolocation errors
+  React.useEffect(() => {
+    if (geoError) {
+      setLocationError(geoError);
+      toast.error(geoError);
+      console.error("❌ Geolocation error:", geoError);
+    }
+  }, [geoError]);
+
   const handleGetLocation = () => {
+    setLocationError(null);
     getLocation();
   };
 
@@ -243,9 +254,10 @@ export const ListFoodPage = () => {
                 label="Pickup Location"
                 placeholder="Type to search for location..."
                 {...register("location")}
-                error={errors.location?.message}
+                error={errors.location?.message || locationError}
                 onLocationSelect={(location) => {
                   setValue("location", location.location);
+                  console.log("📍 Location selected:", location);
                 }}
               />
               <Button
@@ -267,11 +279,20 @@ export const ListFoodPage = () => {
                   </>
                 )}
               </Button>
-              {location && (
-                <div className="bg-emerald-50 p-3 rounded-lg mt-3">
-                  <p className="text-sm text-emerald-700">
-                    📍 Location captured: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+              {locationError && (
+                <div className="bg-red-50 p-3 rounded-lg mt-3 border border-red-200">
+                  <p className="text-sm text-red-700">⚠️ {locationError}</p>
+                  <p className="text-xs text-red-600 mt-1">
+                    Make sure to allow location access in your browser settings
                   </p>
+                </div>
+              )}
+              {location && !locationError && (
+                <div className="bg-emerald-50 p-3 rounded-lg mt-3 border border-emerald-200">
+                  <p className="text-sm text-emerald-700">
+                    ✅ Location captured: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                  </p>
+                  <p className="text-xs text-emerald-600 mt-1">Accuracy: {location.accuracy?.toFixed(0)}m</p>
                 </div>
               )}
             </div>
