@@ -33,7 +33,7 @@ export const LoginPage = () => {
       const user = await authService.signin(data.email, data.password);
       setUser(user);
       toast.success("Logged in successfully!");
-      navigate("/listings");
+      navigate("/");
     } catch (error) {
       const message =
         error.code === "auth/user-not-found" || error.code === "auth/wrong-password"
@@ -51,7 +51,7 @@ export const LoginPage = () => {
       const user = await authService.signInWithGoogle();
       setUser(user);
       toast.success("Logged in with Google!");
-      navigate("/listings");
+      navigate("/");
     } catch (error) {
       const message =
         error.code === "auth/popup-closed-by-user"

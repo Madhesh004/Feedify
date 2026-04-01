@@ -8,24 +8,54 @@ export const useGeolocation = () => {
 
   const getLocation = () => {
     if (!navigator.geolocation) {
-      setError("Geolocation not supported");
+      const errorMsg = "Geolocation is not supported by your browser";
+      setError(errorMsg);
+      console.error("❌", errorMsg);
       return;
     }
 
     setLoading(true);
+    setError(null);
+    console.log("📍 Requesting geolocation...");
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLocation({
+        const loc = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           accuracy: position.coords.accuracy,
-        });
+        };
+        setLocation(loc);
         setError(null);
+        console.log("✅ Geolocation success:", loc);
         setLoading(false);
       },
-      (error) => {
-        setError(error.message);
+      (err) => {
+        let errorMessage = "Failed to get location";
+        
+        switch (err.code) {
+          case err.PERMISSION_DENIED:
+            errorMessage = "Permission denied. Please allow location access in your browser settings.";
+            break;
+          case err.POSITION_UNAVAILABLE:
+            errorMessage = "Location information is unavailable.";
+            break;
+          case err.TIMEOUT:
+            errorMessage = "Location request timed out. Please try again.";
+            break;
+          default:
+            errorMessage = err.message || "Unknown geolocation error";
+        }
+        
+        setError(errorMessage);
+        setLocation(null);
+        console.error("❌ Geolocation error:", errorMessage, err);
         setLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
       }
     );
   };
