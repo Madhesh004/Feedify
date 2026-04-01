@@ -1,51 +1,105 @@
-/* Tailwind base styles and a tiny fallback for when Tailwind isn't configured yet. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Minimal fallback styles to avoid a flash of unstyled content if Tailwind isn't built yet. */
-html, body, #root {
-  height: 100%;
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
 }
+
+/* Base styles */
+* {
+  @apply antialiased;
+}
+
 body {
-  margin: 0;
-  /* Use Funnel Sans as the default UI font */
-  font-family: "Funnel Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background-color: #f9fafb;
+  @apply bg-white text-gray-900;
+  font-feature-settings: "rounding" 1;
 }
 
-/* Funnel Sans utilities (loaded via Google Fonts in index.html) */
-.funnel-sans {
-  font-family: "Funnel Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-style: normal;
-  font-optical-sizing: auto;
+/* Custom animations */
+@layer utilities {
+  .animate-in {
+    @apply transition-all duration-300;
+  }
+
+  .line-clamp-1 {
+    @apply overflow-hidden text-ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+
+  .line-clamp-2 {
+    @apply overflow-hidden text-ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .line-clamp-3 {
+    @apply overflow-hidden text-ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+
+  .truncate-lines {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+  }
 }
 
-/* weight helpers: use e.g. class="funnel-sans funnel-sans-500" */
-.funnel-sans-300 { font-weight: 300; }
-.funnel-sans-400 { font-weight: 400; }
-.funnel-sans-500 { font-weight: 500; }
-.funnel-sans-600 { font-weight: 600; }
-.funnel-sans-700 { font-weight: 700; }
-.funnel-sans-800 { font-weight: 800; }
-
-/* DM Mono utility: apply to code/mono elements when desired */
-.dm-mono {
-  font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-style: normal;
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  @apply w-2 h-2;
 }
 
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
 
-/* Funnel Sans helpers
-   Usage:
-     - Add class `funnel-sans` to apply the Funnel Sans family
-     - Add one of the weight classes: `funnel-sans-300`, `funnel-sans-400`, ..., `funnel-sans-800`
-   Example: <h1 class="funnel-sans funnel-sans-700">Title</h1>
-*/
-.funnel-sans {
-  font-family: "Funnel Sans", sans-serif;
-  font-optical-sizing: auto;
-  font-style: normal;
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* Form inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+textarea,
+select {
+  @apply transition-colors duration-200;
+}
+
+/* Button transitions */
+button {
+  @apply transition-all duration-200;
+}
+
+/* Focus visible for accessibility */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  @apply outline-none;
+}
+
+/* Dark mode support (optional, for future) */
+@media (prefers-color-scheme: dark) {
+  body {
+    color-scheme: dark;
+  }
 }
 
 .funnel-sans-300 { font-weight: 300; }

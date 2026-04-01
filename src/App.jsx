@@ -1,239 +1,107 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { authService } from "./services/authService";
+import { useAuthStore } from "./store/authStore";
+import {
+  Header,
+  ProtectedRoute,
+  ToastProvider,
+} from "./components";
+import {
+  HomePage,
+  LoginPage,
+  SignupPage,
+  ListingsPage,
+  ListFoodPage,
+  DashboardPage,
+  ProfilePage,
+} from "./pages";
+import { Loader } from "lucide-react";
 
 export default function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [route, setRoute] = useState("landing"); // landing | list | view | login
-  const [listings, setListings] = useState(sampleListings());
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedListing, setSelectedListing] = useState(null);
-
-  // Simple local auth: separate roles for lister and viewer
-  const [auth, setAuth] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("feedifyAuth") || "{}");
-      return { lister: !!saved.lister, viewer: !!saved.viewer };
-    } catch {
-      return { lister: false, viewer: false };
-    }
-  });
-  const [loginFor, setLoginFor] = useState(null); // 'list' | 'view' | null
-  const [requestedRoute, setRequestedRoute] = useState(null);
+  const { isAuthenticated, isLoading, setLoading, setUser } = useAuthStore();
 
   useEffect(() => {
-    localStorage.setItem("feedifyAuth", JSON.stringify(auth));
-  }, [auth]);
+    // Listen to auth state changes
+    const unsubscribe = authService.onAuthStateChange((user) => {
+      if (user) {
+        setUser(user);
+      }
+      setLoading(false);
+    });
 
-  function requireAuthAndNavigate(targetRoute) {
-    if (targetRoute === "list" && !auth.lister) {
-      setRequestedRoute(targetRoute);
-      setLoginFor("list");
-      return;
-    }
-    if (targetRoute === "view" && !auth.viewer) {
-      setRequestedRoute(targetRoute);
-      setLoginFor("view");
-      return;
-    }
-    setRoute(targetRoute);
-  }
+    return () => unsubscribe();
+  }, []);
 
-  function addListing(payload) {
-    setListings((prev) => [{ id: Date.now(), ...payload }, ...prev]);
-    setIsFormOpen(false);
-    setRoute("view");
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 text-black">
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className={`fixed inset-y-0 left-0 transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 bg-white w-64 shadow-lg z-30`}>
-          <div className="p-4">
-            <h2 className="text-xl font-bold text-black">Feedify</h2>
-            <nav className="mt-6 flex flex-col gap-2">
-              <button onClick={() => { setRoute('landing'); setSidebarOpen(false); }} className={`text-left px-3 py-2 rounded ${route==='landing'? 'bg-emerald-50':''}`}>Home</button>
-              <button onClick={() => { requireAuthAndNavigate('list'); setSidebarOpen(false); }} className={`text-left px-3 py-2 rounded ${route==='list'? 'bg-emerald-50':''}`}>List Food</button>
-              <button onClick={() => { requireAuthAndNavigate('view'); setSidebarOpen(false); }} className={`text-left px-3 py-2 rounded ${route==='view'? 'bg-emerald-50':''}`}>View Listings</button>
-              <button onClick={() => { setRoute('login'); setSidebarOpen(false); }} className={`text-left px-3 py-2 rounded ${route==='login'? 'bg-emerald-50':''}`}>Login</button>
-            </nav>
-          </div>
-        </aside>
-
-        {/* Overlay when sidebar open */}
-        {sidebarOpen && <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black opacity-30 z-20"></div>}
-
-        {/* Main content area */}
-        <div className="flex-1 min-h-screen">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <header className="flex items-center justify-between py-6">
-            <div className="flex items-center gap-3">
-              <button onClick={() => setSidebarOpen(true)} className="p-2 rounded bg-white shadow">
-                ☰
-              </button>
-              <h1 className="text-2xl font-extrabold text-black">Feedify</h1>
-            </div>
-          </header>
-
-          <main>
-            {route === "landing" && (
-              <Landing onNavigate={(r) => requireAuthAndNavigate(r)} />
-            )}
-
-            {route === "list" && (
-              <ListFoodPage 
-                onOpenForm={() => setIsFormOpen(true)} 
-                listings={listings}
-              />
-            )}
-
-            {route === "view" && (
-              <ViewListingsPage 
-                listings={listings} 
-                onOpenDetail={(l) => setSelectedListing(l)}
-              />
-            )}
-
-            {route === "login" && (
-              <LoginPage 
-                onLoginClick={(mode) => setLoginFor(mode)}
-                auth={auth}
-              />
-            )}
-          </main>
-          </div>
-
-          {/* Floating plus for List Food page */}
-          {route === "list" && (
-            <button onClick={() => setIsFormOpen(true)} aria-label="Add listing" className="fixed right-8 bottom-8 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full w-14 h-14 flex items-center justify-center text-3xl shadow-lg">+</button>
-          )}
-
-          {/* Modals */}
-          {isFormOpen && (
-            <FormModal onClose={() => setIsFormOpen(false)} onSubmit={addListing} />
-          )}
-
-          {selectedListing && (
-            <DetailModal listing={selectedListing} onClose={() => setSelectedListing(null)} />
-          )}
-
-          {loginFor && (
-            <LoginModal 
-              mode={loginFor}
-              onClose={() => setLoginFor(null)}
-              onLoggedIn={(mode) => {
-                setAuth((prev) => ({ ...prev, [mode === 'list' ? 'lister' : 'viewer']: true }));
-                const dest = requestedRoute || (mode === 'list' ? 'list' : 'view');
-                setRequestedRoute(null);
-                setLoginFor(null);
-                setRoute(dest);
-              }}
-            />
-          )}
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-emerald-50 to-blue-50">
+        <div className="text-center">
+          <Loader className="w-12 h-12 animate-spin text-emerald-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading Feedify...</p>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-// ----------------- Components -----------------
-function Landing({ onNavigate }) {
   return (
-    <section className="max-w-4xl mx-auto text-center py-20">
-      <h2 className="text-5xl font-extrabold text-black">Feedify</h2>
-      <p className="mt-4 text-gray-600">Share surplus food. Reduce waste. Help your community.</p>
+    <Router>
+      <div className="min-h-screen bg-white text-gray-900">
+        <Header />
+        <main>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route
+              path="/login"
+              element={isAuthenticated ? <Navigate to="/listings" /> : <LoginPage />}
+            />
+            <Route
+              path="/signup"
+              element={isAuthenticated ? <Navigate to="/listings" /> : <SignupPage />}
+            />
 
-      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card onClick={() => onNavigate('list')} title="List Food" description="Host a food item you want to donate. Quick form." />
-        <Card onClick={() => onNavigate('view')} title="View Listings" description="Browse available food items and request pickup." />
+            {/* Protected Routes */}
+            <Route
+              path="/listings"
+              element={
+                <ProtectedRoute>
+                  <ListingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/list-food"
+              element={
+                <ProtectedRoute>
+                  <ListFoodPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 404 */}
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </main>
+        <ToastProvider />
       </div>
-
-      
-    </section>
-  );
-}
-
-function Card({ title, description, onClick }) {
-  return (
-    <button onClick={onClick} className="bg-white shadow rounded-lg p-6 text-left hover:shadow-md transition">
-      <h3 className="text-xl font-semibold text-emerald-600">{title}</h3>
-      <p className="mt-2 text-gray-600">{description}</p>
-    </button>
-  );
-}
-
-function ListFoodPage({ onOpenForm, listings }) {
-  return (
-    <section className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">List Food</h2>
-        <button onClick={onOpenForm} className="flex items-center gap-2 px-3 py-1 bg-emerald-600 text-white rounded">+
-        </button>
-      </div>
-
-      <div className="mt-6 grid gap-4">
-        {listings.length === 0 && <div className="text-gray-500">No listings yet. Click + to create one.</div>}
-        {listings.map((l) => (
-          <div key={l.id} className="bg-white p-4 rounded shadow flex justify-between items-start">
-            <div>
-              <div className="font-semibold">{l.foodName}</div>
-              <div className="text-sm text-gray-500">Host: {l.hostName} • {l.locationText}</div>
-              <div className="text-xs text-gray-400 mt-1">Added: {new Date(l.id).toLocaleString()}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-600">{l.foodType}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ViewListingsPage({ listings, onOpenDetail }) {
-  return (
-    <section className="max-w-4xl mx-auto">
-      <h2 className="text-xl font-semibold">Available Listings</h2>
-
-      <div className="mt-6 grid gap-4">
-        {listings.length === 0 && <div className="text-gray-500">No listings available.</div>}
-
-        {listings.map((l) => (
-          <article key={l.id} className="bg-white p-4 rounded shadow flex items-center justify-between">
-            <div>
-              <div className="font-semibold text-emerald-700">{l.foodName} <span className="text-sm text-gray-500">({l.foodType})</span></div>
-              <div className="text-sm text-gray-600">{l.locationText} — {l.address}</div>
-            </div>
-
-            <div className="flex flex-col items-end gap-2">
-              <button onClick={() => onOpenDetail(l)} className="px-3 py-1 bg-emerald-600 text-white rounded">Details</button>
-              <div className="text-xs text-gray-500">{l.phone}</div>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// Login landing with two buttons opening respective modals
-function LoginPage({ onLoginClick, auth }) {
-  return (
-    <section className="max-w-3xl mx-auto">
-      <h2 className="text-2xl font-semibold">Login</h2>
-      <p className="mt-2 text-gray-600">Choose how you want to continue.</p>
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <button onClick={() => onLoginClick('list')} className="bg-white p-5 rounded shadow hover:shadow-md text-left">
-          <div className="font-semibold text-emerald-700">Login to list</div>
-          <div className="text-sm text-gray-600 mt-1">Create and manage your food listings.</div>
-          {auth.lister && <div className="mt-2 inline-block text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-700">Already logged in</div>}
-        </button>
-        <button onClick={() => onLoginClick('view')} className="bg-white p-5 rounded shadow hover:shadow-md text-left">
-          <div className="font-semibold text-emerald-700">Login to view list</div>
-          <div className="text-sm text-gray-600 mt-1">Browse and request pickup.</div>
-          {auth.viewer && <div className="mt-2 inline-block text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-700">Already logged in</div>}
-        </button>
-      </div>
-    </section>
+    </Router>
   );
 }
 
