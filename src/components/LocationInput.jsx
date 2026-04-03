@@ -18,18 +18,31 @@ export const LocationInput = React.forwardRef(({ label, error, value = "", onCha
   const [suggestions, setSuggestions] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [mapCenter, setMapCenter] = useState([20, 0]); // Default world center
+  const [mapCenter, setMapCenter] = useState([20, 0]);
   const [selectedIndex, setSelectedIndex] = useState(null);
+  const [inputValue, setInputValue] = useState(value);
+
+  // Sync inputValue with value prop
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
 
   // Handle search queries
   useEffect(() => {
-    if (value && typeof value === "string" && value.length > 2) {
-      fetchSuggestions(value);
+    if (inputValue && typeof inputValue === "string" && inputValue.length > 2) {
+      fetchSuggestions(inputValue);
     } else {
       setSuggestions([]);
       setIsOpen(false);
     }
-  }, [value]);
+  }, [inputValue]);
+
+  const handleInputChange = (e) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    // Call the onChange from react-hook-form
+    onChange?.(e);
+  };
 
   const fetchSuggestions = async (query) => {
     setLoading(true);
@@ -67,6 +80,7 @@ export const LocationInput = React.forwardRef(({ label, error, value = "", onCha
       target: { value: suggestion.label, name: ref?.name || "location" }
     };
     
+    setInputValue(suggestion.label);
     onChange?.(syntheticEvent);
     onLocationSelect?.({
       location: suggestion.label,
@@ -88,8 +102,8 @@ export const LocationInput = React.forwardRef(({ label, error, value = "", onCha
         <input
           ref={ref}
           type="text"
-          value={value}
-          onChange={onChange}
+          value={inputValue}
+          onChange={handleInputChange}
           onFocus={() => suggestions.length > 0 && setIsOpen(true)}
           className={`w-full pl-9 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition bg-white text-gray-900 placeholder-gray-400 ${
             error
