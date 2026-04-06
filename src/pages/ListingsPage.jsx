@@ -76,6 +76,55 @@ export const ListingsPage = () => {
     }
   };
 
+  const handleClaim = async (listing) => {
+    try {
+      if (listing.userId === user.uid) {
+        toast.error("You cannot claim your own listing");
+        return;
+      }
+
+      if (listing.status === "claimed") {
+        toast.error("This listing has already been claimed");
+        return;
+      }
+
+      // Get current user's profile for claim details
+      const userProfile = await userService.getUserProfile(user.uid);
+
+      // Claim the listing
+      const claimDetails = {
+        name: user.displayName || "Anonymous",
+        email: user.email,
+        phone: userProfile?.phone || "Not provided",
+      };
+
+      await listingsService.claimListing(listing.id, user.uid, claimDetails);
+
+      toast.success("🎉 You've successfully claimed this food! Please coordinate pickup with the lister.");
+      setSelectedListing(null);
+
+      // Update listing in the store
+      const updatedListings = listings.map((l) =>
+        l.id === listing.id
+          ? {
+              ...l,
+              status: "claimed",
+              claimedBy: user.uid,
+              claimerName: claimDetails.name,
+              claimerEmail: claimDetails.email,
+              claimedAt: new Date(),
+            }
+          : l
+      );
+      // The real-time subscription will handle the update
+    } catch (error) {
+      console.error("Error claiming listing:", error);
+      const errorMessage = error.message || "Failed to claim listing";
+      toast.error(errorMessage);
+      throw error;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -205,6 +254,9 @@ export const ListingsPage = () => {
             listing={selectedListing}
             onClose={() => setSelectedListing(null)}
             onBook={() => handleBook(selectedListing)}
+            onClaim={handleClaim}
+            currentUserId={user.uid}
+            isOwnListing={selectedListing.userId === user.uid}
           />
         )}
       </div>

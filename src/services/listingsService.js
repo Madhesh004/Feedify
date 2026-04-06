@@ -195,4 +195,145 @@ export const listingsService = {
       throw error;
     }
   },
+
+  // Claim a listing
+  claimListing: async (listingId, userId, claimerDetails) => {
+    try {
+      console.log("🎯 [claimListing] Claiming listing:", listingId);
+      console.log("🎯 [claimListing] Claimer ID:", userId);
+      
+      const listingRef = doc(db, "listings", listingId);
+      
+      // Get current listing to verify it's available
+      const snapshot = await getDocs(
+        query(collection(db, "listings"), where("__name__", "==", listingId))
+      );
+      
+      if (snapshot.empty) {
+        throw new Error("Listing not found");
+      }
+
+      const currentListing = snapshot.docs[0].data();
+      
+      if (currentListing.status !== "available") {
+        throw new Error("This listing is no longer available");
+      }
+
+      if (currentListing.userId === userId) {
+        throw new Error("You cannot claim your own listing");
+      }
+
+      // Update listing status to claimed
+      await updateDoc(listingRef, {
+        status: "claimed",
+        claimedBy: userId,
+        claimerName: claimerDetails.name || "Anonymous",
+        claimerEmail: claimerDetails.email,
+        claimerPhone: claimerDetails.phone,
+        claimedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+
+      console.log("✅ [claimListing] Successfully claimed listing:", listingId);
+      
+      return {
+        id: listingId,
+        ...currentListing,
+        status: "claimed",
+        claimedBy: userId,
+        claimerName: claimerDetails.name || "Anonymous",
+        claimerEmail: claimerDetails.email,
+        claimerPhone: claimerDetails.phone,
+        claimedAt: new Date(),
+      };
+    } catch (error) {
+      console.error("❌ [claimListing] Error:", error);
+      throw {
+        code: error.code || "claim-error",
+        message: error.message || "Failed to claim listing",
+      };
+    }
+  },
+
+  // Get user's claimed listings (where they claimed food)
+  subscribeToClaimedListings: (userId, callback) => {
+    try {
+      const q = query(
+        collection(db, "listings"),
+        where("claimedBy", "==", userId),
+        orderBy("claimedAt", "desc")
+      );
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const listings = [];
+          snapshot.forEach((doc) => {
+            listings.push({
+              id: doc.id,
+              ...doc.data(),
+              createdAt: doc.data().createdAt?.toDate(),
+              updatedAt: doc.data().updatedAt?.toDate(),
+              claimedAt: doc.data().claimedAt?.toDate(),
+            });
+          });
+          callback(listings);
+        },
+        (error) => {
+          console.error("Error subscribing to claimed listings:", error);
+        }
+      );
+
+      return unsubscribe;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Unclaim a listing (only the claimer can do this)
+  unclaimListing: async (listingId, userId) => {
+    try {
+      console.log("🎯 [unclaimListing] Unclaiming listing:", listingId);
+      
+      const listingRef = doc(db, "listings", listingId);
+      const snapshot = await getDocs(
+        query(collection(db, "listings"), where("__name__", "==", listingId))
+      );
+
+      if (snapshot.empty) {
+        throw new Error("Listing not found");
+      }
+
+      const currentListing = snapshot.docs[0].data();
+
+      if (currentListing.claimedBy !== userId) {
+        throw new Error("You can only unclaim listings you have claimed");
+      }
+
+      await updateDoc(listingRef, {
+        status: "available",
+        claimedBy: null,
+        claimerName: null,
+        claimerEmail: null,
+        claimerPhone: null,
+        claimedAt: null,
+        updatedAt: Timestamp.now(),
+      });
+
+      console.log("✅ [unclaimListing] Successfully unclaimed listing:", listingId);
+      
+      return {
+        id: listingId,
+        ...currentListing,
+        status: "available",
+        claimedBy: null,
+      };
+    } catch (error) {
+      console.error("❌ [unclaimListing] Error:", error);
+      throw {
+        code: error.code || "unclaim-error",
+        message: error.message || "Failed to unclaim listing",
+      };
+    }
+  },
 };

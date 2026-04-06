@@ -8,6 +8,10 @@ import {
   getDoc,
   updateDoc,
   Timestamp,
+  addDoc,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 
@@ -159,7 +163,58 @@ export const userService = {
       throw error;
     }
   },
-};
 
-// Helper: Import what we need
-import { addDoc, query, where, getDocs } from "firebase/firestore";
+  // Ensure user profile exists (call after auth sign-in)
+  ensureUserProfileExists: async (userId, userData) => {
+    try {
+      const userRef = doc(db, "users", userId);
+      const userDoc = await getDoc(userRef);
+
+      if (!userDoc.exists()) {
+        // Create a new profile
+        await setDoc(userRef, {
+          userId,
+          email: userData.email || "",
+          displayName: userData.displayName || "",
+          photoURL: userData.photoURL || "",
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          phone: "",
+          location: "",
+          bio: "",
+          bookmarks: [],
+          preferences: {},
+        });
+      } else {
+        // Update last login
+        await updateDoc(userRef, {
+          updatedAt: Timestamp.now(),
+        });
+      }
+
+      return userDoc.exists() ? userDoc.data() : null;
+    } catch (error) {
+      console.error("Error ensuring user profile:", error);
+      throw {
+        code: error.code || "profile-error",
+        message: error.message || "Failed to ensure user profile",
+      };
+    }
+  },
+
+  // Update user profile
+  updateUserProfile: async (userId, profileData) => {
+    try {
+      const userRef = doc(db, "users", userId);
+      await updateDoc(userRef, {
+        ...profileData,
+        updatedAt: Timestamp.now(),
+      });
+    } catch (error) {
+      throw {
+        code: error.code,
+        message: "Failed to update profile",
+      };
+    }
+  },
+};
